@@ -6,9 +6,10 @@ import { withAuth } from '@/lib/withAuth'
 import { ingestUpload } from '@/lib/meetings'
 import { sendError } from '@/lib/apiError'
 import { ValidationError, ParseError } from '@/lib/fileParsing'
+import { analyze } from '@/handlers/meetingAnalysisHandler'
 
 export const config = {
-  api: { bodyParser: false },
+  api: { bodyParser: false, maxDuration: 60 },
 }
 
 const ALLOWED_EXTENSIONS = ['.txt', '.docx', '.pdf']
@@ -42,6 +43,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse, managerId: str
 
   try {
     const meetingId = await ingestUpload(managerId, teammateId, buffer, ext)
+    analyze(meetingId).catch(err => console.error('[upload] analysis error:', err))
     return res.status(200).json({ meetingId })
   } catch (err) {
     if (err instanceof ValidationError) return sendError(res, 400, err.message)
