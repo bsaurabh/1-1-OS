@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Manager {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teammates   Teammate[]
+  resetTokens PasswordResetToken[]
+  pushSub     PushSubscription?
+
+  @@map("managers")
+}
+
+model Teammate {
+  id        String   @id @default(cuid())
+  managerId String
+  name      String
+  role      String
+  profile   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manager     Manager      @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  meetings    Meeting[]
+  patterns    Pattern[]
+  commitments Commitment[]
+
+  @@map("teammates")
+}
+
+model Meeting {
+  id          String         @id @default(cuid())
+  managerId   String
+  teammateId  String
+  rawText     String         @db.Text
+  source      MeetingSource
+  status      AnalysisStatus @default(PENDING_ANALYSIS)
+  themes      Json?
+  tags        String[]
+  summary     String?
+  tone        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  teammate    Teammate     @relation(fields: [teammateId], references: [id], onDelete: Cascade)
+  commitments Commitment[]
+  analysisJob AnalysisJob?
+
+  @@map("meetings")
+}
+
+enum MeetingSource {
+  PASTE
+  UPLOAD
+  VOICE
+}
+
+enum AnalysisStatus {
+  PENDING_ANALYSIS
+  ANALYSIS_COMPLETE
+  ANALYSIS_FAILED
+}
+
+model Pattern {
+  id          String          @id @default(cuid())
+  teammateId  String
+  description String          @db.Text
+  severity    PatternSeverity
+  evidence    Json
+  detectedAt  DateTime        @default(now())
+
+  teammate Teammate @relation(fields: [teammateId], references: [id], onDelete: Cascade)
+
+  @@map("patterns")
+}
+
+enum PatternSeverity {
+  INFORMATIONAL
+  WATCH
+  ACTION_REQUIRED
+}
+
+model Commitment {
+  id          String           @id @default(cuid())
+  managerId   String
+  teammateId  String
+  meetingId   String?
+  text        String           @db.Text
+  owner       CommitmentOwner
+  status      CommitmentStatus @default(SUGGESTED)
+  dueDate     DateTime?
+  carryCount  Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  teammate Teammate  @relation(fields: [teammateId], references: [id], onDelete: Cascade)
+  meeting  Meeting?  @relation(fields: [meetingId], references: [id])
+
+  @@map("commitments")
+}
+
+enum CommitmentOwner {
+  MANAGER
+  TEAMMATE
+}
+
+enum CommitmentStatus {
+  SUGGESTED
+  OPEN
+  DONE
+  CARRIED_FORWARD
+  DROPPED
+}
+
+model AnalysisJob {
+  id          String    @id @default(cuid())
+  meetingId   String    @unique
+  status      JobStatus @default(PENDING)
+  retryCount  Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@map("analysis_jobs")
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+model PushSubscription {
+  id           String   @id @default(cuid())
+  managerId    String   @unique
+  subscription Json
+  createdAt    DateTime @default(now())
+
+  manager Manager @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@map("push_subscriptions")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  managerId String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  manager Manager @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
