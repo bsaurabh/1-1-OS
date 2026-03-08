@@ -144,6 +144,40 @@ enum JobStatus {
   FAILED
 }
 
+// ─── Design Critique (Beta) ──────────────────────────────────────────────────
+
+model DesignCritique {
+  id            String              @id @default(cuid())
+  managerId     String
+  status        CritiqueStatus      @default(PENDING)
+  featureName   String
+  userType      String
+  featureGoal   String
+  successMetric String
+  constraints   String?
+  stage         CritiqueStage       @default(EXPLORATORY)
+  focusAreas    String[]
+  imageUrls     String[]
+  figmaUrl      String?
+  result        Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@map("design_critiques")
+}
+
+enum CritiqueStatus {
+  PENDING
+  ANALYZING
+  COMPLETE
+  FAILED
+}
+
+enum CritiqueStage {
+  EXPLORATORY
+  FINAL_POLISH
+}
+
 model PushSubscription {
   id           String   @id @default(cuid())
   managerId    String   @unique
