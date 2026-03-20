@@ -1,7 +1,7 @@
 # Build Instructions — 1:1OS
 
-**Date**: 2026-03-03
-**Scope**: Units 1–5: Foundation, Teammate Profiles, Meeting Ingestion, Intelligence Engine, Tracker & Timeline (ALL UNITS COMPLETE)
+**Date**: 2026-03-19 (updated)
+**Scope**: Units 1–7: Foundation → Tracker & Timeline → Design Critique Engine → AI Excel Insights Dashboard
 
 ---
 
@@ -219,3 +219,31 @@ Vercel automatically runs the build command: `prisma generate && prisma migrate 
 - [ ] `https://<project>.vercel.app/auth/login` renders
 - [ ] Register, login, logout flow works end-to-end
 - [ ] Forgot-password email is received (check Resend dashboard for delivery)
+
+---
+
+## Unit 7 Addition: AI Excel Insights Dashboard
+
+### New Migration
+The migration `20260319_add_excel_analyses/migration.sql` is included automatically in `prisma migrate deploy`.
+
+Confirm the table exists after migration:
+```sql
+SELECT column_name, data_type FROM information_schema.columns
+WHERE table_name = 'excel_analyses';
+```
+Expected: id, managerId, filename, sheetName, rowCount, schemaMapping, metrics, insights, recommendations, status, analysedAt
+
+### New Dependency: `xlsx`
+Already added to `package.json`. Installed via `npm install`.
+
+No additional environment variables required — uses existing `ANTHROPIC_API_KEY`.
+
+### Smoke-test checklist (Unit 7)
+- [ ] Sidebar shows "Insights" nav item
+- [ ] `/insights` loads the upload page
+- [ ] Upload a `.csv` or `.xlsx` file → analysis runs and redirects to `/insights/[id]`
+- [ ] Dashboard shows insight cards, metric panels, recommendation cards
+- [ ] "Export Excel" button downloads a `.xlsx` file
+- [ ] Back to `/insights` shows the analysis in history list
+- [ ] Clicking a history item reloads the full dashboard

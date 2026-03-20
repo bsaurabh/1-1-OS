@@ -1,7 +1,7 @@
 # Integration Test Instructions — 1:1OS
 
-**Date**: 2026-03-03
-**Scope**: Units 1–5 — auth, teammate profiles, meeting ingestion, intelligence engine, tracker & timeline
+**Date**: 2026-03-19 (updated)
+**Scope**: Units 1–7 — auth, teammate profiles, meeting ingestion, intelligence engine, tracker & timeline, design critique, AI Excel insights
 
 ---
 
@@ -226,6 +226,85 @@ npm run dev
 **Expected**: Fallback path allows manual profile entry without breaking the teammate record.
 
 **Cleanup**: Restore `ANTHROPIC_API_KEY`, delete test teammate.
+
+---
+
+## Unit 7 Integration Scenarios
+
+### Scenario 12: Excel Upload → Analysis → Persistence
+
+**Tests**: Full happy path — file in, dashboard saved to DB
+
+**Prerequisites**: Dev server running, valid `ANTHROPIC_API_KEY`, `excel_analyses` table migrated
+
+**Steps**:
+1. Login and get session cookie
+2. POST `/api/insights/upload` with a multipart `.xlsx` file containing columns: `Item Name`, `Status`, `Size`, `Completed Date`, `Revenue Impact`
+3. Verify: `201` with `{ id, metrics, insights, recommendations }`
+4. Confirm `insights` array has ≥ 3 strings
+5. Confirm `metrics.delivery.completionRate` is a number 0–100
+6. GET `/api/insights` — verify the new analysis appears in the list
+7. GET `/api/insights/<id>` — verify full analysis returned with correct `managerId`
+
+**Expected**: End-to-end flow produces and persists a complete analysis.
+
+**Cleanup**: `DELETE FROM excel_analyses WHERE id = '<id>'`
+
+---
+
+### Scenario 13: Schema Auto-Detection Miss → Manual Mapping → Analysis
+
+**Tests**: `needsMapping` fallback path
+
+**Steps**:
+1. POST `/api/insights/upload` with a file using non-standard column names (`Task`, `State`, `T-Shirt Size`)
+2. Verify: `200` with `{ needsMapping: true, columns: [...], detectedSchema, sheetNames }`
+3. Re-POST `/api/insights/upload` with same file + `schemaOverride: { itemName: "Task", status: "State", size: "T-Shirt Size" }`
+4. Verify: `201` with full analysis result (no `needsMapping`)
+
+**Expected**: Manual mapping override produces a complete analysis identical to auto-detected flow.
+
+---
+
+### Scenario 14: Multi-User Data Isolation
+
+**Tests**: Row-level isolation — manager A cannot read manager B's analyses
+
+**Steps**:
+1. Login as Manager A, upload file, note `analysisId`
+2. Login as Manager B
+3. GET `/api/insights/<analysisId>` as Manager B
+4. Verify: `404`
+5. DELETE `/api/insights/<analysisId>` as Manager B
+6. Verify: `404`
+7. GET `/api/insights` as Manager B — verify Manager A's analysis is NOT in the list
+
+**Expected**: All insight routes enforce `managerId` ownership.
+
+---
+
+### Scenario 15: Export Download
+
+**Tests**: CSV/Excel export produces a valid file
+
+**Steps**:
+1. Upload and analyse a file, get `analysisId`
+2. GET `/api/insights/export?id=<analysisId>`
+3. Verify: `200` with `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+4. Verify: `Content-Disposition` header contains `attachment; filename=`
+5. Parse the response buffer as XLSX — confirm it has ≥ 3 sheets (Delivery, Time & Throughput, Business Impact)
+
+**Expected**: Export returns a valid multi-sheet .xlsx file.
+
+---
+
+### Scenario 16: File Size Limit Enforcement
+
+**Steps**:
+1. POST `/api/insights/upload` with a file > 10MB
+2. Verify: `400` or formidable's built-in file size rejection
+
+**Expected**: Oversized files are rejected gracefully.
 
 ---
 

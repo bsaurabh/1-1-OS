@@ -2,7 +2,6 @@ import CommitmentListMini from './CommitmentListMini'
 import PatternSignals from './PatternSignals'
 import CoachingApproachCard from './CoachingApproachCard'
 import QuestionList from './QuestionList'
-import { formatBriefAsText } from '@/handlers/briefGenerationHandler'
 
 interface BriefCommitment {
   text: string
@@ -34,6 +33,54 @@ interface Brief {
   followUpQuestions: string[]
   uncomfortableQuestion: string
   coachingApproach: CoachingApproach
+}
+
+function formatBriefAsText(brief: Brief, teammateName: string): string {
+  const lines: string[] = [
+    `PRE-MEETING BRIEF — ${teammateName}`,
+    `Generated: ${new Date(brief.generatedAt).toLocaleDateString()}`,
+    '',
+    '--- CONTEXT SUMMARY ---',
+    brief.contextSummary,
+    '',
+  ]
+
+  if (brief.riskSignals.length > 0) {
+    lines.push('--- RISK SIGNALS ---')
+    lines.push(...brief.riskSignals.map((r) => `⚠ ${r}`))
+    lines.push('')
+  }
+
+  lines.push(
+    '--- OPEN COMMITMENTS ---',
+    ...(brief.openCommitments.length > 0
+      ? brief.openCommitments.map(
+          (c, i) =>
+            `${i + 1}. [${c.owner}] ${c.text} (${c.status}${c.carryCount >= 2 ? ` — carried ${c.carryCount}x` : ''})`
+        )
+      : ['None.']),
+    '',
+    '--- ACTIVE PATTERNS ---',
+    ...(brief.patterns.length > 0
+      ? brief.patterns.map((p) => `• [${p.severity}] ${p.description}`)
+      : ['No active patterns.']),
+    '',
+    '--- COACHING FOCUS ---',
+    brief.coachingFocus,
+    '',
+    '--- COACHING APPROACH ---',
+    `Framework: ${brief.coachingApproach.framework}`,
+    brief.coachingApproach.rationale,
+    ...brief.coachingApproach.actions.map((a) => `• ${a}`),
+    '',
+    '--- FOLLOW-UP QUESTIONS ---',
+    ...brief.followUpQuestions.map((q, i) => `${i + 1}. ${q}`),
+    '',
+    '--- THE UNCOMFORTABLE QUESTION ---',
+    brief.uncomfortableQuestion,
+  )
+
+  return lines.join('\n')
 }
 
 interface BriefViewProps {

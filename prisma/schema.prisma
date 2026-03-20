@@ -15,9 +15,10 @@ model Manager {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  teammates   Teammate[]
-  resetTokens PasswordResetToken[]
-  pushSub     PushSubscription?
+  teammates      Teammate[]
+  resetTokens    PasswordResetToken[]
+  pushSub        PushSubscription?
+  excelAnalyses  ExcelAnalysis[]
 
   @@map("managers")
 }
@@ -176,6 +177,31 @@ enum CritiqueStatus {
 enum CritiqueStage {
   EXPLORATORY
   FINAL_POLISH
+}
+
+// ─── Excel Insights ───────────────────────────────────────────────────────────
+
+model ExcelAnalysis {
+  id            String               @id @default(cuid())
+  managerId     String
+  filename      String
+  sheetName     String?
+  rowCount      Int
+  schemaMapping Json
+  metrics       Json
+  insights      Json
+  recommendations Json
+  status        ExcelAnalysisStatus  @default(COMPLETE)
+  analysedAt    DateTime             @default(now())
+
+  manager Manager @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
+  @@map("excel_analyses")
+}
+
+enum ExcelAnalysisStatus {
+  COMPLETE
+  FAILED
 }
 
 model PushSubscription {

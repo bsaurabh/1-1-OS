@@ -1,7 +1,7 @@
 # Build and Test Summary — 1:1OS
 
-**Date**: 2026-03-03
-**Unit Scope**: Units 1–5: All Units Complete (Foundation, Teammate Profiles, Meeting Ingestion, Intelligence Engine, Tracker & Timeline)
+**Date**: 2026-03-19 (updated)
+**Unit Scope**: Units 1–7: All Units Complete (Foundation, Teammate Profiles, Meeting Ingestion, Intelligence Engine, Tracker & Timeline, Design Critique Engine, AI Excel Insights Dashboard)
 **Overall Status**: Instructions complete — ready for execution
 
 ---
@@ -10,10 +10,10 @@
 
 | Step | Command | Expected Outcome |
 |------|---------|-----------------|
-| Install dependencies | `npm install` | All packages installed, including `@anthropic-ai/sdk`, `openai`, `web-push`, `mammoth`, `pdf-parse`, `formidable`, `@supabase/supabase-js` |
+| Install dependencies | `npm install` | All packages installed, including `@anthropic-ai/sdk`, `openai`, `web-push`, `mammoth`, `pdf-parse`, `formidable`, `@supabase/supabase-js`, `xlsx` |
 | Generate Prisma client | `npx prisma generate` | `✔ Generated Prisma Client` |
-| Apply DB migrations | `npx prisma migrate deploy` | 2 migrations applied; all 8 tables + RLS policies active |
-| Build application | `npm run build` | TypeScript clean; all 34 routes compiled |
+| Apply DB migrations | `npx prisma migrate deploy` | 3 migrations applied; all 9 tables + RLS policies active |
+| Build application | `npm run build` | TypeScript clean; all 40+ routes compiled |
 | Start dev server | `npm run dev` | Server at `http://localhost:3000`, redirects to `/auth/login` |
 
 **Build artifacts produced**:
@@ -61,7 +61,10 @@
 | `lib/timeline.test.ts` | 10 | Ready to run |
 | `pages/api/timeline/[teammateId].test.ts` | 3 | Ready to run |
 | `pages/api/timeline/[teammateId]/summary.test.ts` | 7 | Ready to run |
-| **Total** | **~239** | — |
+| `__tests__/insights/parser.test.ts` | ~12 | Ready to run |
+| `__tests__/insights/metrics.test.ts` | ~13 | Ready to run |
+| `__tests__/insights/api-insights.test.ts` | ~8 | Ready to run |
+| **Total** | **~272** | — |
 
 **Run command**: `npm test`
 **Coverage command**: `npm run test:coverage`
@@ -88,6 +91,11 @@
 | Brief generation → Claude fallback | US-10 | Manual with invalid API key |
 | Commitment lifecycle — create, carry, resolve | US-14, US-15 | Manual with curl |
 | Growth timeline + summary generation | US-13 | Manual — requires `ANTHROPIC_API_KEY` |
+| Excel upload → parse → insights → dashboard (happy path) | US-18 | Manual — requires `ANTHROPIC_API_KEY` |
+| Upload with ambiguous schema → schema mapper → re-submit | US-18 | Manual — `needsMapping: true` flow |
+| Multi-user isolation — manager A cannot access manager B analyses | US-18 | Manual with curl |
+| Export analysis as XLSX download | US-18 | Manual — verify multi-sheet workbook |
+| File size guard — reject files > configured limit | US-18 | Manual with oversized file |
 
 **Environment**: Supabase dev project + local Next.js dev server + all 13 env vars set
 
@@ -106,8 +114,12 @@
 | Brief generation latency | curl + time | Ready — sequential only |
 | Commitment CRUD endpoints | autocannon | Ready |
 | Growth summary latency | curl + time | Ready — sequential only |
+| Excel upload + AI analysis latency | curl + time | Ready — sequential only (no load test) |
+| List past analyses (no AI) | autocannon | Ready |
+| Get single analysis (no AI) | curl + time | Ready |
+| Export download (no AI) | curl + time | Ready |
 
-**Targets**: Auth < 500ms p95 · Interview < 5s p95 · Analysis < 30s p95 · Brief < 10s p95 · Commitment CRUD < 200ms p95 · Growth summary < 5s p95
+**Targets**: Auth < 500ms p95 · Interview < 5s p95 · Analysis < 30s p95 · Brief < 10s p95 · Commitment CRUD < 200ms p95 · Growth summary < 5s p95 · Excel insights < 10s p95 · List/get analyses < 200ms p95 · Export < 500ms p95
 
 ### E2E Tests
 
@@ -142,7 +154,7 @@
 - [ ] Web Push VAPID keys generated: `npx web-push generate-vapid-keys` (required for Unit 3 notifications)
 
 ### Before Deploying to Vercel
-- [ ] All unit tests pass: `npm test` (~239 tests across 32 suites)
+- [ ] All unit tests pass: `npm test` (~272 tests across 35 suites)
 - [ ] Build succeeds: `npm run build`
 - [ ] Smoke-test checklist from build-instructions.md completed locally
 - [ ] Vercel environment variables set (all **13**, including Unit 3–5 additions)
@@ -183,5 +195,7 @@
 | Unit 3: Meeting Ingestion | ✅ Complete | US-05, US-06, US-07, US-08, US-17 |
 | Unit 4: Intelligence Engine | ✅ Complete | US-09, US-10, US-11, US-12 |
 | Unit 5: Tracker & Timeline | ✅ Complete | US-13, US-14, US-15 |
+| Unit 6: Design Critique Engine | ✅ Complete | US-17 |
+| Unit 7: AI Excel Insights Dashboard | ✅ Complete | US-18 |
 
-**All 17 user stories implemented across 5 units. Construction phase complete.**
+**All 18 user stories implemented across 7 units. Construction phase complete.**

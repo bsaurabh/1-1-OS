@@ -1,7 +1,7 @@
 # Performance Test Instructions — 1:1OS
 
-**Date**: 2026-03-03
-**Scope**: Units 1–5 — auth, AI interview, meeting ingestion, intelligence engine, tracker & timeline
+**Date**: 2026-03-19 (updated)
+**Scope**: Units 1–7 — auth, AI interview, meeting ingestion, intelligence engine, tracker & timeline, design critique, AI Excel insights
 
 ---
 
@@ -301,4 +301,59 @@ time curl -s -X POST http://localhost:3000/api/timeline/<teammateId>/summary \
 | Unit 3 baseline | After Unit 3 deploy | Paste < 300ms; analysis cron < 30s |
 | Unit 4 baseline | After Unit 4 deploy | Brief generation < 10s p95 |
 | Unit 5 baseline | After Unit 5 deploy | Commitment CRUD < 200ms; growth summary < 5s |
+| Unit 7 baseline | After Unit 7 deploy | Upload+analysis < 10s; list/get < 200ms; export < 500ms |
 | Pre-launch | Before public access | All NFR targets above met at PoC scale (≤20 concurrent) |
+
+---
+
+## Unit 7 Performance Tests: AI Excel Insights
+
+**NFR target**: Time to insight < 10 seconds (file parse + Claude) for files up to 1,000 rows.
+
+### Test 13: Upload + Analysis Latency (Unit 7)
+
+```bash
+# End-to-end timing: upload → parse → metrics → Claude → DB write
+time curl -s -X POST http://localhost:3000/api/insights/upload \
+  -H "Cookie: session=<valid-jwt>" \
+  -F "file=@sample-data-100rows.xlsx" | jq '{id: .id, insights_count: (.insights | length)}'
+```
+
+**Expected results**:
+- p50: 4–8 seconds (Claude Sonnet insights generation dominates)
+- p95: < 10 seconds for ≤ 1,000 rows
+- Response includes `id` and `insights` array with ≥ 3 items
+
+**Do not load-test this endpoint** — Claude API rate limits apply. Sequential timing only.
+
+### Test 14: List Past Analyses (Unit 7 — no AI)
+
+```bash
+autocannon -c 10 -d 10 -m GET \
+  -H "Cookie: session=<valid-jwt>" \
+  "http://localhost:3000/api/insights"
+```
+
+**Expected**: p95 < 200ms (DB read, no AI)
+
+### Test 15: Get Single Analysis (Unit 7 — no AI)
+
+```bash
+time curl -s http://localhost:3000/api/insights/<id> \
+  -H "Cookie: session=<valid-jwt>" | jq '.analysis.rowCount'
+```
+
+**Expected**: < 150ms p95 (single DB row read)
+
+### Test 16: Export Download (Unit 7 — no AI)
+
+```bash
+time curl -s "http://localhost:3000/api/insights/export?id=<id>" \
+  -H "Cookie: session=<valid-jwt>" \
+  -o /dev/null -w "%{http_code} %{size_download} bytes %{time_total}s\n"
+```
+
+**Expected**:
+- Status: `200`
+- Response time: < 500ms (in-memory XLSX generation)
+- File size: > 1KB (multi-sheet workbook)

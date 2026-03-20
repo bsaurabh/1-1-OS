@@ -1,7 +1,7 @@
 # Unit Test Execution — 1:1OS
 
-**Date**: 2026-03-03
-**Scope**: Units 1–5: Foundation through Tracker & Timeline — 32 test files, ~240 test cases
+**Date**: 2026-03-19 (updated)
+**Scope**: Units 1–7: Foundation through AI Excel Insights Dashboard — 35 test files, ~273 test cases
 
 ---
 
@@ -90,10 +90,21 @@ PASS  pages/api/commitments/[teammateId].test.ts
 PASS  lib/timeline.test.ts
 PASS  pages/api/timeline/[teammateId].test.ts
 PASS  pages/api/timeline/[teammateId]/summary.test.ts
+PASS  __tests__/insights/parser.test.ts
+PASS  __tests__/insights/metrics.test.ts
+PASS  __tests__/insights/api-insights.test.ts
 
-Test Suites: 32 passed, 32 total
-Tests:       ~239 passed, ~239 total
+Test Suites: 35 passed, 35 total
+Tests:       ~272 passed, ~272 total
 ```
+
+### Run Unit 7 tests only
+
+```bash
+npx jest __tests__/insights --no-coverage
+```
+
+Expected: `3 suites, 33 tests, 0 failures`
 
 ---
 
